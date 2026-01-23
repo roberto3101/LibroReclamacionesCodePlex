@@ -1,0 +1,189 @@
+---
+// FirmaDigital.astro - Versión Modal Responsive
+---
+
+<div class="firma-container">
+  <label class="block text-sm font-medium text-gray-700 mb-2">
+    Firma Digital <span class="text-red-500">*</span>
+  </label>
+  
+  <div 
+    id="abrir-firma"
+    class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition group h-40"
+  >
+    <div id="estado-sin-firma" class="text-center">
+      <div class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-3 text-2xl group-hover:scale-110 transition">
+        ✍️
+      </div>
+      <p class="text-blue-600 font-medium group-hover:underline">Click aquí para firmar en pantalla completa</p>
+      <p class="text-xs text-gray-500 mt-1">Evita errores al mover el dedo</p>
+    </div>
+
+    <img id="img-preview" class="hidden max-h-32 w-auto object-contain" alt="Firma realizada" />
+    <p id="texto-cambiar" class="hidden text-xs text-blue-600 mt-2 underline">Click para cambiar firma</p>
+  </div>
+
+  <input type="hidden" id="firma_digital" name="firma_digital" required />
+  <p class="text-xs text-gray-500 mt-2">
+    ℹ️ Su firma digital tiene validez legal según Ley N° 27269
+  </p>
+</div>
+
+<div id="modal-firma" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    
+    <div class="bg-gray-100 px-4 py-3 border-b flex justify-between items-center">
+      <h3 class="font-bold text-gray-800">✍️ Realice su firma</h3>
+      <button type="button" id="cerrar-x" class="text-gray-500 hover:text-red-500 text-xl font-bold">&times;</button>
+    </div>
+
+    <div id="canvas-wrapper" class="flex-1 bg-white relative cursor-crosshair touch-none" style="min-height: 300px;">
+        <canvas id="signature-canvas" class="w-full h-full block"></canvas>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-200 text-4xl font-bold pointer-events-none select-none">
+            FIRMAR AQUÍ
+        </div>
+    </div>
+
+    <div class="bg-gray-50 px-4 py-4 border-t flex flex-col sm:flex-row justify-between gap-3">
+        <button 
+            type="button" 
+            id="btn-limpiar" 
+            class="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 font-medium transition"
+        >
+            🗑️ Borrar
+        </button>
+        
+        <div class="flex gap-3">
+            <button 
+                type="button" 
+                id="btn-cancelar" 
+                class="flex-1 sm:flex-none px-4 py-2 text-gray-700 font-medium hover:underline"
+            >
+                Cancelar
+            </button>
+            <button 
+                type="button" 
+                id="btn-guardar" 
+                class="flex-1 sm:flex-none px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg transition transform active:scale-95"
+            >
+                ✅ Aceptar Firma
+            </button>
+        </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // @ts-ignore
+  import SignaturePad from 'https://cdn.jsdelivr.net/npm/signature_pad@5.0.0/+esm';
+
+  // Elementos DOM
+  const btnAbrir = document.getElementById('abrir-firma');
+  const modal = document.getElementById('modal-firma');
+  const canvas = document.getElementById('signature-canvas');
+  const wrapper = document.getElementById('canvas-wrapper');
+  const hiddenInput = document.getElementById('firma_digital');
+  
+  // Elementos de UI
+  const sinFirmaDiv = document.getElementById('estado-sin-firma');
+  const imgPreview = document.getElementById('img-preview');
+  const textoCambiar = document.getElementById('texto-cambiar');
+
+  // Botones
+  const btnGuardar = document.getElementById('btn-guardar');
+  const btnLimpiar = document.getElementById('btn-limpiar');
+  const btnCancelar = document.getElementById('btn-cancelar');
+  const btnCerrarX = document.getElementById('cerrar-x');
+
+  let signaturePad = null;
+
+  // --- LÓGICA DE INICIALIZACIÓN ---
+  function initPad() {
+    if (!canvas || signaturePad) return;
+    
+    signaturePad = new SignaturePad(canvas, {
+        backgroundColor: 'rgba(255, 255, 255, 0)', // Transparente para ver el texto de fondo si quieres, o blanco
+        penColor: 'rgb(0, 0, 0)',
+        minWidth: 1.5,
+        maxWidth: 3.5,
+        throttle: 16
+    });
+  }
+
+  // --- AJUSTE DE TAMAÑO RESPONSIVE ---
+  function resizeCanvas() {
+    if (!canvas || !wrapper || !signaturePad) return;
+    
+    // Guardar trazos actuales
+    const data = signaturePad.toData();
+    
+    // Obtener dimensiones reales del contenedor visible
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const width = wrapper.clientWidth;
+    const height = wrapper.clientHeight;
+
+    // Ajustar canvas
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    canvas.getContext("2d").scale(ratio, ratio);
+    
+    // Restaurar trazos
+    signaturePad.clear();
+    signaturePad.fromData(data);
+  }
+
+  // --- ABRIR MODAL ---
+  btnAbrir?.addEventListener('click', () => {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden'; // Bloquear scroll del body
+    
+    // Pequeño delay para asegurar que el modal es visible antes de calcular dimensiones
+    setTimeout(() => {
+        initPad();
+        resizeCanvas();
+        // Si ya había firma, intentar cargarla (opcional, aquí decidimos empezar de cero o mantener)
+        // Por UX, mejor empezar de cero o mostrar lo que había si se guardó en memoria
+    }, 50);
+  });
+
+  // --- CERRAR MODAL ---
+  function cerrarModal() {
+    modal.classList.add('hidden');
+    document.body.style.overflow = ''; // Restaurar scroll
+  }
+
+  [btnCancelar, btnCerrarX].forEach(btn => btn?.addEventListener('click', cerrarModal));
+
+  // --- GUARDAR FIRMA ---
+  btnGuardar?.addEventListener('click', () => {
+    if (signaturePad.isEmpty()) {
+        alert("Por favor, realice su firma antes de aceptar.");
+        return;
+    }
+
+    // Guardar en input oculto
+    const dataURL = signaturePad.toDataURL('image/png');
+    hiddenInput.value = dataURL;
+
+    // Actualizar UI previa
+    imgPreview.src = dataURL;
+    imgPreview.classList.remove('hidden');
+    textoCambiar.classList.remove('hidden');
+    sinFirmaDiv.classList.add('hidden');
+    btnAbrir.classList.add('border-blue-400', 'bg-blue-50'); // Feedback visual
+
+    cerrarModal();
+  });
+
+  // --- LIMPIAR ---
+  btnLimpiar?.addEventListener('click', () => {
+    signaturePad.clear();
+  });
+
+  // Evento resize ventana
+  window.addEventListener("resize", () => {
+     if (!modal.classList.contains('hidden')) {
+         resizeCanvas();
+     }
+  });
+</script>
