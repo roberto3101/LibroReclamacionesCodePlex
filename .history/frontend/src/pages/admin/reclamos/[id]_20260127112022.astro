@@ -1,0 +1,25 @@
+---
+// src/pages/admin/reclamos/[id].astro
+import Layout from '../../../layouts/Layout.astro';
+
+export const prerender = false;
+---
+
+<Layout title="Detalle de Reclamo - Panel Administrativo">
+	<div id="app" class="min-h-screen bg-gray-50"></div>
+
+	<script>
+		import { createRoot } from 'react-dom/client';
+		import { createElement } from 'react';
+		import ReclamoDetail from '../../../components/admin/ReclamoDetail';
+
+		const container = document.getElementById('app');
+		if (container) {
+			const pathParts = window.location.pathname.split('/');
+			const id = pathParts[pathParts.length - 1];
+			
+			const root = createRoot(container);
+			root.render(createElement(ReclamoDetail, { id }));
+		}
+	</script>
+</Layout>

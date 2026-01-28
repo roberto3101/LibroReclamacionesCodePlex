@@ -1,0 +1,748 @@
+// =============================================================================
+// API BACKEND - LIBRO DE RECLAMACIONES CODEPLEX
+// Go + Gin + PostgreSQL/CockroachDB
+// Equivalente directo a server.js
+// =============================================================================
+
+package main
+
+import (
+	"context"
+	"crypto/tls"
+	"database/sql"
+	"encoding/base64"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"regexp"
+	"strconv"
+	"strings"
+	"syscall"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
+	"gopkg.in/gomail.v2"
+)
+
+// =============================================================================
+// VARIABLES GLOBALES
+// =============================================================================
+
+var (
+	pool   *pgxpool.Pool
+	dialer *gomail.Dialer
+	config Config
+)
+
+// =============================================================================
+// CONFIGURACIÓN
+// =============================================================================
+
+type Config struct {
+	Port         string
+	Env          string
+	DatabaseURL  string
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUser     string
+	SMTPPass     string
+	SMTPFrom     string
+	FrontendURL  string
+	BackendURL   string
+	EmailSoporte string
+}
+
+func loadConfig() Config {
+	env := os.Getenv("NODE_ENV")
+	if env == "" {
+		env = "development"
+	}
+
+	envFile := ".env"
+	if env == "production" {
+		envFile = ".env.production"
+	}
+	_ = godotenv.Load(envFile)
+
+	smtpPort, _ := strconv.Atoi(getEnv("SMTP_PORT", "587"))
+
+	return Config{
+		Port:         getEnv("PORT", "3000"),
+		Env:          env,
+		DatabaseURL:  getEnv("DATABASE_URL", "postgresql://postgres:sql@127.0.0.1:5432/libro_reclamaciones"),
+		SMTPHost:     getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SMTPPort:     smtpPort,
+		SMTPUser:     getEnv("SMTP_USER", ""),
+		SMTPPass:     getEnv("SMTP_PASS", ""),
+		SMTPFrom:     getEnv("SMTP_FROM", "libro.reclamaciones@codeplex.pe"),
+		FrontendURL:  getEnv("FRONTEND_URL", "http://localhost:4321"),
+		BackendURL:   getEnv("BACKEND_URL", "http://localhost:3000"),
+		EmailSoporte: getEnv("EMAIL_SOPORTE", "soporte@codeplex.pe"),
+	}
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// =============================================================================
+// ESTRUCTURAS
+// =============================================================================
+
+type CrearReclamoRequest struct {
+	TipoSolicitud        string   `json:"tipo_solicitud"`
+	NombreCompleto       string   `json:"nombre_completo"`
+	TipoDocumento        string   `json:"tipo_documento"`
+	NumeroDocumento      string   `json:"numero_documento"`
+	Telefono             string   `json:"telefono"`
+	Email                string   `json:"email"`
+	Domicilio            *string  `json:"domicilio"`
+	Departamento         *string  `json:"departamento"`
+	Provincia            *string  `json:"provincia"`
+	Distrito             *string  `json:"distrito"`
+	TipoBien             *string  `json:"tipo_bien"`
+	MontoReclamado       float64  `json:"monto_reclamado"`
+	DescripcionBien      string   `json:"descripcion_bien"`
+	AreaQueja            *string  `json:"area_queja"`
+	DescripcionSituacion *string  `json:"descripcion_situacion"`
+	FechaIncidente       string   `json:"fecha_incidente"`
+	DetalleReclamo       string   `json:"detalle_reclamo"`
+	PedidoConsumidor     string   `json:"pedido_consumidor"`
+	FirmaDigital         string   `json:"firma_digital"`
+	AceptaTerminos       bool     `json:"acepta_terminos"`
+	AceptaCopia          bool     `json:"acepta_copia"`
+}
+
+type ReclamoCreado struct {
+	ID                   string    `json:"id"`
+	CodigoReclamo        string    `json:"codigo_reclamo"`
+	FechaRegistro        time.Time `json:"fecha_registro"`
+	FechaLimiteRespuesta time.Time `json:"fecha_limite_respuesta"`
+}
+
+// =============================================================================
+// FUNCIÓN: Generar código único
+// =============================================================================
+
+func generarCodigoReclamo(ctx context.Context) (string, error) {
+	año := time.Now().Year()
+	pattern := fmt.Sprintf("CODEPLEX-%d-%%", año)
+
+	var ultimoCodigo sql.NullString
+	err := pool.QueryRow(ctx, `
+		SELECT codigo_reclamo FROM reclamos 
+		WHERE codigo_reclamo LIKE $1 
+		ORDER BY codigo_reclamo DESC LIMIT 1
+	`, pattern).Scan(&ultimoCodigo)
+
+	if err != nil && err.Error() != "no rows in result set" {
+		return "", err
+	}
+
+	numero := 1
+	if ultimoCodigo.Valid {
+		parts := strings.Split(ultimoCodigo.String, "-")
+		if len(parts) == 3 {
+			if n, err := strconv.Atoi(parts[2]); err == nil {
+				numero = n + 1
+			}
+		}
+	}
+
+	return fmt.Sprintf("CODEPLEX-%d-%05d", año, numero), nil
+}
+
+// =============================================================================
+// HANDLERS
+// =============================================================================
+
+// Health check
+func healthHandler(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	dbStatus := "disconnected"
+	if err := pool.Ping(ctx); err == nil {
+		dbStatus = "connected"
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":    "ok",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"database":  dbStatus,
+	})
+}
+
+// POST /api/reclamos - Crear nuevo reclamo
+func crearReclamoHandler(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	defer cancel()
+
+	var req CrearReclamoRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Datos inválidos: " + err.Error(),
+		})
+		return
+	}
+
+	// Validaciones (igual que en Node.js)
+	if req.TipoSolicitud != "RECLAMO" && req.TipoSolicitud != "QUEJA" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Tipo de solicitud inválido"})
+		return
+	}
+
+	if req.FirmaDigital == "" || !strings.HasPrefix(req.FirmaDigital, "data:image") {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Firma digital requerida"})
+		return
+	}
+
+	if !req.AceptaTerminos {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Debe aceptar los términos y condiciones"})
+		return
+	}
+
+	emailRegex := regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+	if !emailRegex.MatchString(req.Email) {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Formato de correo electrónico inválido"})
+		return
+	}
+
+	if req.DescripcionBien == "" || req.DetalleReclamo == "" || req.PedidoConsumidor == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Faltan detalles del reclamo o el pedido del consumidor"})
+		return
+	}
+
+	if len(req.DetalleReclamo) > 3000 || len(req.PedidoConsumidor) > 2000 || len(req.NombreCompleto) > 200 || len(req.DescripcionBien) > 600 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Uno de los campos excede el límite permitido de caracteres."})
+		return
+	}
+
+	// Iniciar transacción
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Error al iniciar transacción"})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	// Generar código único
+	codigoReclamo, err := generarCodigoReclamo(ctx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Error generando código"})
+		return
+	}
+
+	// Insertar reclamo
+	var reclamo ReclamoCreado
+	err = tx.QueryRow(ctx, `
+		INSERT INTO reclamos (
+			codigo_reclamo, tipo_solicitud, nombre_completo, tipo_documento, numero_documento,
+			telefono, email, domicilio, departamento, provincia, distrito,
+			tipo_bien, monto_reclamado, descripcion_bien, area_queja, descripcion_situacion,
+			fecha_incidente, detalle_reclamo, pedido_consumidor, firma_digital,
+			acepta_terminos, acepta_copia, ip_address, user_agent
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+		RETURNING id, codigo_reclamo, fecha_registro, fecha_limite_respuesta
+	`,
+		codigoReclamo, req.TipoSolicitud, req.NombreCompleto, req.TipoDocumento, req.NumeroDocumento,
+		req.Telefono, req.Email, nullString(req.Domicilio), nullString(req.Departamento), nullString(req.Provincia), nullString(req.Distrito),
+		nullString(req.TipoBien), req.MontoReclamado, req.DescripcionBien, nullString(req.AreaQueja), nullString(req.DescripcionSituacion),
+		req.FechaIncidente, req.DetalleReclamo, req.PedidoConsumidor, req.FirmaDigital,
+		req.AceptaTerminos, req.AceptaCopia, c.ClientIP(), c.GetHeader("User-Agent"),
+	).Scan(&reclamo.ID, &reclamo.CodigoReclamo, &reclamo.FechaRegistro, &reclamo.FechaLimiteRespuesta)
+
+	if err != nil {
+		log.Printf("Error insertando reclamo: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Error al registrar el reclamo",
+			"error":   errorDetail(err),
+		})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Error al confirmar transacción"})
+		return
+	}
+
+	// Enviar emails de forma asíncrona
+	tipoBien := "SERVICIO"
+	if req.TipoBien != nil && *req.TipoBien != "" {
+		tipoBien = *req.TipoBien
+	}
+
+	go func() {
+		if config.Env == "test" {
+			time.Sleep(2 * time.Second)
+		}
+		if err := enviarEmails(reclamo, req, tipoBien); err != nil {
+			log.Printf("Error enviando emails: %v", err)
+		}
+	}()
+
+	c.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"message": "Reclamo registrado exitosamente",
+		"data": gin.H{
+			"codigo_reclamo":         reclamo.CodigoReclamo,
+			"fecha_registro":         reclamo.FechaRegistro,
+			"fecha_limite_respuesta": reclamo.FechaLimiteRespuesta,
+			"plazo_dias":             15,
+		},
+	})
+}
+
+// GET /api/reclamos/:codigo - Consultar reclamo por código
+func obtenerReclamoHandler(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	codigo := c.Param("codigo")
+
+	rows, err := pool.Query(ctx, `
+		SELECT 
+			r.id, r.codigo_reclamo, r.tipo_solicitud, r.estado,
+			r.nombre_completo, r.tipo_documento, r.numero_documento,
+			r.telefono, r.email, r.domicilio, r.departamento, r.provincia, r.distrito,
+			r.razon_social, r.ruc, r.direccion_proveedor,
+			r.tipo_bien, r.monto_reclamado, r.descripcion_bien,
+			r.area_queja, r.descripcion_situacion,
+			r.fecha_incidente, r.detalle_reclamo, r.pedido_consumidor,
+			r.acepta_terminos, r.acepta_copia,
+			r.fecha_registro, r.fecha_limite_respuesta, r.fecha_respuesta,
+			res.respuesta_empresa, res.fecha_respuesta as res_fecha, res.respondido_por
+		FROM reclamos r
+		LEFT JOIN respuestas res ON r.id = res.reclamo_id
+		WHERE r.codigo_reclamo = $1
+	`, codigo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Error al consultar el reclamo"})
+		return
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "Reclamo no encontrado"})
+		return
+	}
+
+	var (
+		id, codigoReclamo, tipoSolicitud, estado                        string
+		nombreCompleto, tipoDocumento, numeroDocumento, telefono, email string
+		domicilio, departamento, provincia, distrito                    sql.NullString
+		razonSocial, ruc, direccionProveedor                            string
+		tipoBien, areaQueja, descripcionSituacion                       sql.NullString
+		montoReclamado                                                  float64
+		descripcionBien, detalleReclamo, pedidoConsumidor               string
+		fechaIncidente                                                  time.Time
+		aceptaTerminos, aceptaCopia                                     bool
+		fechaRegistro, fechaLimiteRespuesta                             time.Time
+		fechaRespuesta                                                  sql.NullTime
+		respuestaEmpresa, resFecha, respondidoPor                       sql.NullString
+	)
+
+	err = rows.Scan(
+		&id, &codigoReclamo, &tipoSolicitud, &estado,
+		&nombreCompleto, &tipoDocumento, &numeroDocumento, &telefono, &email,
+		&domicilio, &departamento, &provincia, &distrito,
+		&razonSocial, &ruc, &direccionProveedor,
+		&tipoBien, &montoReclamado, &descripcionBien,
+		&areaQueja, &descripcionSituacion,
+		&fechaIncidente, &detalleReclamo, &pedidoConsumidor,
+		&aceptaTerminos, &aceptaCopia,
+		&fechaRegistro, &fechaLimiteRespuesta, &fechaRespuesta,
+		&respuestaEmpresa, &resFecha, &respondidoPor,
+	)
+	if err != nil {
+		log.Printf("Error escaneando reclamo: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Error al procesar el reclamo"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"id":                     id,
+			"codigo_reclamo":         codigoReclamo,
+			"tipo_solicitud":         tipoSolicitud,
+			"estado":                 estado,
+			"nombre_completo":        nombreCompleto,
+			"tipo_documento":         tipoDocumento,
+			"numero_documento":       numeroDocumento,
+			"telefono":               telefono,
+			"email":                  email,
+			"domicilio":              nullToInterface(domicilio),
+			"departamento":           nullToInterface(departamento),
+			"provincia":              nullToInterface(provincia),
+			"distrito":               nullToInterface(distrito),
+			"razon_social":           razonSocial,
+			"ruc":                    ruc,
+			"direccion_proveedor":    direccionProveedor,
+			"tipo_bien":              nullToInterface(tipoBien),
+			"monto_reclamado":        montoReclamado,
+			"descripcion_bien":       descripcionBien,
+			"area_queja":             nullToInterface(areaQueja),
+			"descripcion_situacion":  nullToInterface(descripcionSituacion),
+			"fecha_incidente":        fechaIncidente,
+			"detalle_reclamo":        detalleReclamo,
+			"pedido_consumidor":      pedidoConsumidor,
+			"acepta_terminos":        aceptaTerminos,
+			"acepta_copia":           aceptaCopia,
+			"fecha_registro":         fechaRegistro,
+			"fecha_limite_respuesta": fechaLimiteRespuesta,
+			"fecha_respuesta":        nullTimeToInterface(fechaRespuesta),
+			"respuesta_empresa":      nullToInterface(respuestaEmpresa),
+			"respondido_por":         nullToInterface(respondidoPor),
+		},
+	})
+}
+
+// GET /api/reclamos/:codigo/firma - Ver firma digital
+func obtenerFirmaHandler(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	codigo := c.Param("codigo")
+
+	var firma string
+	err := pool.QueryRow(ctx, "SELECT firma_digital FROM reclamos WHERE codigo_reclamo = $1", codigo).Scan(&firma)
+	if err != nil {
+		c.String(http.StatusNotFound, "Reclamo no encontrado")
+		return
+	}
+
+	parts := strings.SplitN(firma, ",", 2)
+	if len(parts) != 2 {
+		c.String(http.StatusInternalServerError, "Formato de firma inválido")
+		return
+	}
+
+	imageData, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error decodificando firma")
+		return
+	}
+
+	c.Header("Content-Type", "image/png")
+	c.Data(http.StatusOK, "image/png", imageData)
+}
+
+// GET /api/dashboard - Dashboard de reclamos
+func dashboardHandler(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	var pendientes, enProceso, resueltos, vencidos, totalReclamos, totalQuejas, total int64
+	err := pool.QueryRow(ctx, "SELECT * FROM dashboard_reclamos").Scan(
+		&pendientes, &enProceso, &resueltos, &vencidos, &totalReclamos, &totalQuejas, &total,
+	)
+	if err != nil {
+		log.Printf("Error en dashboard stats: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Error al obtener dashboard"})
+		return
+	}
+
+	rows, err := pool.Query(ctx, "SELECT * FROM reclamos_pendientes LIMIT 10")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Error al obtener dashboard"})
+		return
+	}
+	defer rows.Close()
+
+	var pendientesList []gin.H
+	for rows.Next() {
+		var id, codigoReclamo, tipoSolicitud, nombreCompleto, email string
+		var fechaRegistro, fechaLimiteRespuesta time.Time
+		var diasRestantes int
+		var prioridad string
+
+		if err := rows.Scan(&id, &codigoReclamo, &tipoSolicitud, &nombreCompleto, &email, &fechaRegistro, &fechaLimiteRespuesta, &diasRestantes, &prioridad); err != nil {
+			continue
+		}
+
+		pendientesList = append(pendientesList, gin.H{
+			"id":                     id,
+			"codigo_reclamo":         codigoReclamo,
+			"tipo_solicitud":         tipoSolicitud,
+			"nombre_completo":        nombreCompleto,
+			"email":                  email,
+			"fecha_registro":         fechaRegistro,
+			"fecha_limite_respuesta": fechaLimiteRespuesta,
+			"dias_restantes":         diasRestantes,
+			"prioridad":              prioridad,
+		})
+	}
+
+	if pendientesList == nil {
+		pendientesList = []gin.H{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"estadisticas": gin.H{
+				"pendientes":     pendientes,
+				"en_proceso":     enProceso,
+				"resueltos":      resueltos,
+				"vencidos":       vencidos,
+				"total_reclamos": totalReclamos,
+				"total_quejas":   totalQuejas,
+				"total":          total,
+			},
+			"pendientes": pendientesList,
+		},
+	})
+}
+
+// =============================================================================
+// ENVÍO DE EMAILS
+// =============================================================================
+
+func enviarEmails(reclamo ReclamoCreado, req CrearReclamoRequest, tipoBien string) error {
+	fechaLimite := reclamo.FechaLimiteRespuesta.Format("02/01/2006")
+	fechaRegistro := reclamo.FechaRegistro.Format("02/01/2006 15:04:05")
+
+	m := gomail.NewMessage()
+	m.SetHeader("From", config.SMTPFrom)
+	m.SetHeader("To", config.EmailSoporte)
+	m.SetHeader("Subject", fmt.Sprintf("Nuevo %s - %s", req.TipoSolicitud, reclamo.CodigoReclamo))
+	m.SetBody("text/html", generarEmailSoporte(reclamo.CodigoReclamo, req.TipoSolicitud, fechaLimite, req.NombreCompleto, req.Email, tipoBien, req.DescripcionBien, req.DetalleReclamo, req.MontoReclamado))
+
+	if err := dialer.DialAndSend(m); err != nil {
+		return fmt.Errorf("error enviando email a soporte: %w", err)
+	}
+
+	if req.AceptaCopia {
+		m2 := gomail.NewMessage()
+		m2.SetHeader("From", config.SMTPFrom)
+		m2.SetHeader("To", req.Email)
+		m2.SetHeader("Subject", fmt.Sprintf("Confirmación de %s - %s", req.TipoSolicitud, reclamo.CodigoReclamo))
+		m2.SetBody("text/html", generarEmailCliente(reclamo.CodigoReclamo, req.TipoSolicitud, fechaLimite, fechaRegistro, req.NombreCompleto, tipoBien, req.DescripcionBien))
+
+		if err := dialer.DialAndSend(m2); err != nil {
+			return fmt.Errorf("error enviando email al cliente: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func generarEmailSoporte(codigo, tipo, fechaLimite, nombre, email, tipoBien, descripcion, detalle string, monto float64) string {
+	tipoBienBg := "#ffedd5"
+	tipoBienColor := "#9a3412"
+	if tipoBien == "PRODUCTO" {
+		tipoBienBg = "#dbeafe"
+		tipoBienColor = "#1e40af"
+	}
+
+	montoHTML := ""
+	if monto > 0 {
+		montoHTML = fmt.Sprintf(`<div style="margin-top: 8px; font-size: 0.9em;"><strong>Monto:</strong> S/ %.2f</div>`, monto)
+	}
+
+	return fmt.Sprintf(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+.header { background: #1e40af; color: white; padding: 20px; text-align: center; }
+.content { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; }
+.field { margin-bottom: 15px; }
+.label { font-weight: bold; color: #1e40af; }
+.alert { background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0; }
+</style></head>
+<body><div class="container">
+<div class="header"><h1>📋 Nuevo %s</h1><p>Código: %s</p></div>
+<div class="content">
+<div class="alert"><strong>⚠️ PLAZO LEGAL:</strong> Debe responder antes del <strong>%s</strong> (15 días hábiles)</div>
+<div class="field"><div class="label">Tipo de Solicitud:</div><div>%s</div></div>
+<div class="field"><div class="label">Consumidor:</div><div>%s</div></div>
+<div class="field"><div class="label">Email:</div><div>%s</div></div>
+<div class="field" style="background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #e5e7eb;">
+<div style="margin-bottom: 8px;"><span class="label">Tipo de Bien:</span> <span style="background-color: %s; color: %s; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">%s</span></div>
+<div><span class="label">Descripción:</span><br>%s</div>%s</div>
+<div class="field"><div class="label">Detalle:</div><div>%s</div></div>
+<div class="field"><div class="label">🖊️ Firma Digital:</div><div><a href="%s/api/reclamos/%s/firma" target="_blank" style="color: #1e40af; text-decoration: underline;">Ver firma del consumidor</a></div></div>
+</div></div></body></html>`,
+		tipo, codigo, fechaLimite, tipo, nombre, email, tipoBienBg, tipoBienColor, tipoBien, descripcion, montoHTML, detalle, config.BackendURL, codigo)
+}
+
+func generarEmailCliente(codigo, tipo, fechaLimite, fechaRegistro, nombre, tipoBien, descripcion string) string {
+	tipoLower := "reclamo"
+	if tipo == "QUEJA" {
+		tipoLower = "queja"
+	}
+
+	return fmt.Sprintf(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+.header { background: #1e40af; color: white; padding: 20px; text-align: center; }
+.success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; }
+.info { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; }
+</style></head>
+<body><div class="container">
+<div class="header"><h1>✅ %s Registrado</h1><h2>%s</h2></div>
+<div class="success"><strong>Estimado/a %s</strong><br>Su %s ha sido registrado exitosamente en nuestro Libro de Reclamaciones Virtual.</div>
+<div class="info"><strong>📅 Plazo de Respuesta:</strong><br>Recibirá nuestra respuesta antes del <strong>%s</strong><br><br>Plazo legal: <strong>15 días hábiles</strong> (según D.S. 011-2011-PCM)</div>
+<h3>Resumen de su %s:</h3>
+<ul>
+<li><strong>Código:</strong> %s</li>
+<li><strong>Fecha:</strong> %s</li>
+<li><strong>Tipo:</strong> %s</li>
+<li><strong>Bien Contratado:</strong> %s</li>
+<li><strong>Descripción:</strong> %s</li>
+</ul>
+<div class="info"><strong>ℹ️ Información Importante:</strong><br>• Conserve este email como comprobante<br></div>
+<div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
+CODEPLEX SAC | RUC: 20539782232<br>AV. LOS PROCERES MZA. G3 LOTE. 11 - LIMA - LOS OLIVOS<br>soporte@codeplex.pe | +51 936343607
+</div></div></body></html>`,
+		tipo, codigo, nombre, tipoLower, fechaLimite, tipo, codigo, fechaRegistro, tipo, tipoBien, descripcion)
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+func nullString(s *string) sql.NullString {
+	// CORRECCIÓN: Validación explícita de nil para evitar Puntero Nulo (Panic)
+	if s == nil {
+		return sql.NullString{Valid: false}
+	}
+	if *s == "" {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: *s, Valid: true}
+}
+
+
+func nullToInterface(ns sql.NullString) interface{} {
+	if ns.Valid {
+		return ns.String
+	}
+	return nil
+}
+
+func nullTimeToInterface(nt sql.NullTime) interface{} {
+	if nt.Valid {
+		return nt.Time
+	}
+	return nil
+}
+
+func errorDetail(err error) string {
+	if config.Env == "development" {
+		return err.Error()
+	}
+	return ""
+}
+
+// =============================================================================
+// MIDDLEWARE CORS
+// =============================================================================
+
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.Next()
+	}
+}
+
+// =============================================================================
+// MAIN
+// =============================================================================
+
+func main() {
+	config = loadConfig()
+
+	if config.Env == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	// Conectar a la base de datos
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var err error
+	pool, err = pgxpool.New(ctx, config.DatabaseURL)
+	if err != nil {
+		log.Fatalf("❌ Error conectando a la base de datos: %v", err)
+	}
+	defer pool.Close()
+
+	if err := pool.Ping(ctx); err != nil {
+		log.Fatalf("❌ Error verificando conexión: %v", err)
+	}
+	log.Println("✅ Conectado a la base de datos")
+
+	// Configurar SMTP
+	dialer = gomail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUser, config.SMTPPass)
+	dialer.TLSConfig = &tls.Config{InsecureSkipVerify: true, ServerName: config.SMTPHost}
+	if config.SMTPPort == 465 {
+		dialer.SSL = true
+	}
+
+// Router
+	router := gin.New()
+	
+	// CORRECCIÓN: Configuración para Proxies (Vercel/Cloudflare/Nginx)
+	router.ForwardedByClientIP = true
+	router.SetTrustedProxies(nil) // Confía en todos los proxies de entrada (necesario para la nube)
+
+	router.Use(gin.Recovery())
+	router.Use(gin.Logger())
+	router.Use(corsMiddleware())
+
+	// Rutas
+	api := router.Group("/api")
+	{
+		api.GET("/health", healthHandler)
+		api.POST("/reclamos", crearReclamoHandler)
+		api.GET("/reclamos/:codigo", obtenerReclamoHandler)
+		api.GET("/reclamos/:codigo/firma", obtenerFirmaHandler)
+		api.GET("/dashboard", dashboardHandler)
+	}
+
+	// Servidor
+	srv := &http.Server{
+		Addr:         ":" + config.Port,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+	}
+
+	go func() {
+		log.Printf("🚀 Servidor corriendo en puerto %s", config.Port)
+		log.Printf("📍 Health check: http://localhost:%s/api/health", config.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("❌ Error: %v", err)
+		}
+	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("👋 Cerrando servidor...")
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel2()
+	srv.Shutdown(ctx2)
+}

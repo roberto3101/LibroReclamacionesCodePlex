@@ -1,0 +1,950 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Seguimiento de Reclamo - CODEPLEX">
+  <main class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+      <div class="container mx-auto px-4 py-6">
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col border-l-4 border-blue-600 pl-4">
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">
+              SEGUIMIENTO DE RECLAMO
+            </h1>
+            <p class="text-sm text-gray-500 font-medium">
+              CODEPLEX SOFTWARE S.A.C. | RUC: 20539782232
+            </p>
+          </div>
+          <a
+            href="/"
+            class="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-2"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Volver al inicio
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+      <!-- Formulario de Consulta -->
+      <div id="seccion-consulta" class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <div class="text-center mb-8">
+          <div
+            class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"
+          >
+            <svg
+              class="w-10 h-10 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">
+            Consultar Estado de Reclamo
+          </h2>
+          <p class="text-gray-600">
+            Ingrese su código de reclamo y número de documento para verificar el
+            estado
+          </p>
+        </div>
+
+        <form id="form-consulta" class="space-y-6">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <label
+                for="codigo_reclamo"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Código de Reclamo <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="codigo_reclamo"
+                name="codigo_reclamo"
+                required
+                placeholder="Ej: CODEPLEX-2026-00001"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition uppercase"
+              />
+            </div>
+            <div>
+              <label
+                for="numero_documento"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Número de Documento <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="numero_documento"
+                name="numero_documento"
+                required
+                maxlength="12"
+                placeholder="Ej: 12345678"
+                oninput="this.value = this.value.replace(/[^0-9a-zA-Z]/g, '')"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            id="btn-consultar"
+            class="w-full py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg flex items-center justify-center gap-2"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            Consultar Estado
+          </button>
+        </form>
+      </div>
+
+      <!-- Resultado del Seguimiento (oculto inicialmente) -->
+      <div id="seccion-resultado" class="hidden space-y-6">
+        <!-- Botón Volver -->
+        <button
+          id="btn-nueva-consulta"
+          class="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-2 mb-4"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          Nueva consulta
+        </button>
+
+        <!-- Cabecera del Reclamo -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div id="header-estado" class="p-6 text-white">
+            <div
+              class="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+            >
+              <div>
+                <p class="text-sm opacity-80 mb-1">Código de Reclamo</p>
+                <h2 id="resultado-codigo" class="text-2xl font-bold">
+                  CODEPLEX-2026-00000
+                </h2>
+              </div>
+              <div class="text-left md:text-right">
+                <p class="text-sm opacity-80 mb-1">Estado Actual</p>
+                <span
+                  id="resultado-estado-badge"
+                  class="inline-block px-4 py-2 rounded-full text-sm font-bold bg-white/20"
+                >
+                  PENDIENTE
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Info Rápida -->
+          <div
+            class="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 border-b"
+          >
+            <div class="text-center">
+              <p class="text-xs text-gray-500 uppercase">Tipo</p>
+              <p id="resultado-tipo" class="font-semibold text-gray-900">
+                RECLAMO
+              </p>
+            </div>
+            <div class="text-center">
+              <p class="text-xs text-gray-500 uppercase">Registrado</p>
+              <p id="resultado-fecha" class="font-semibold text-gray-900">
+                --/--/----
+              </p>
+            </div>
+            <div class="text-center">
+              <p class="text-xs text-gray-500 uppercase">Plazo Límite</p>
+              <p id="resultado-limite" class="font-semibold text-gray-900">
+                --/--/----
+              </p>
+            </div>
+            <div class="text-center">
+              <p class="text-xs text-gray-500 uppercase">Días Restantes</p>
+              <p id="resultado-dias" class="font-semibold text-gray-900">--</p>
+            </div>
+          </div>
+
+          <!-- Detalles -->
+          <div class="p-6 space-y-4">
+            <!-- Información del Consumidor -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+              <p class="text-sm font-bold text-blue-900 mb-2">
+                👤 Datos del Consumidor
+              </p>
+              <div class="grid md:grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span class="text-gray-600">Nombre:</span>
+                  <span
+                    id="resultado-nombre"
+                    class="font-semibold text-gray-900 ml-1">--</span
+                  >
+                </div>
+                <div>
+                  <span class="text-gray-600">Email:</span>
+                  <span
+                    id="resultado-email"
+                    class="font-semibold text-gray-900 ml-1">--</span
+                  >
+                </div>
+                <div>
+                  <span class="text-gray-600">Teléfono:</span>
+                  <span
+                    id="resultado-telefono"
+                    class="font-semibold text-gray-900 ml-1">--</span
+                  >
+                </div>
+                <div>
+                  <span class="text-gray-600">Documento:</span>
+                  <span
+                    id="resultado-documento"
+                    class="font-semibold text-gray-900 ml-1">--</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Descripción del Bien -->
+            <div>
+              <p
+                class="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2"
+              >
+                <svg
+                  class="w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                  ></path>
+                </svg>
+                Descripción del Bien/Servicio
+              </p>
+              <p
+                id="resultado-descripcion"
+                class="text-gray-900 bg-gray-50 p-3 rounded-lg border border-gray-200 break-all overflow-hidden"
+              >
+                --
+              </p>
+            </div>
+
+            <!-- Detalle del Reclamo -->
+            <div>
+              <p
+                class="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2"
+              >
+                <svg
+                  class="w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  ></path>
+                </svg>
+                Detalle del Reclamo
+              </p>
+              <p
+                id="resultado-detalle"
+                class="text-gray-900 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap border border-gray-200 break-all overflow-hidden"
+              >
+                --
+              </p>
+            </div>
+
+            <!-- Pedido del Consumidor -->
+            <div>
+              <p
+                class="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2"
+              >
+                <svg
+                  class="w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                  ></path>
+                </svg>
+                Pedido del Consumidor
+              </p>
+              <p id="resultado-pedido" class="text-gray-900 bg-green-50 p-3 rounded-lg border border-green-200 font-medium break-all overflow-hidden">--</p>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Respuesta de la Empresa (si existe) -->
+        <div
+          id="seccion-respuesta"
+          class="hidden bg-white rounded-xl shadow-lg p-6"
+        >
+          <h3
+            class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"
+          >
+            <svg
+              class="w-5 h-5 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Respuesta de CODEPLEX
+          </h3>
+          <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+            <p
+              id="resultado-respuesta"
+              class="text-gray-800 whitespace-pre-line"
+            >
+              --
+            </p>
+            <div
+              class="mt-4 pt-4 border-t border-green-200 text-sm text-gray-600"
+            >
+              <p>
+                Respondido por: <span
+                  id="resultado-respondido-por"
+                  class="font-medium">--</span
+                >
+              </p>
+              <p>
+                Fecha de respuesta: <span
+                  id="resultado-fecha-respuesta"
+                  class="font-medium">--</span
+                >
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline de Historial -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <h3
+            class="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2"
+          >
+            <svg
+              class="w-5 h-5 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Historial de Seguimiento
+          </h3>
+          <div id="timeline-container" class="space-y-0">
+            <!-- Timeline items se insertan aquí -->
+          </div>
+        </div>
+
+        <!-- Formulario de Mensaje Adicional -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <h3
+            class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"
+          >
+            <svg
+              class="w-5 h-5 text-purple-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+              ></path>
+            </svg>
+            Enviar Mensaje Adicional
+          </h3>
+          <form id="form-mensaje" class="space-y-4">
+            <div>
+              <textarea
+                id="mensaje_adicional"
+                name="mensaje_adicional"
+                rows="4"
+                maxlength="1000"
+                required
+                placeholder="Escriba información adicional o consultas sobre su reclamo..."
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition resize-none"
+              ></textarea>
+              <p class="text-right text-xs text-gray-400 mt-1">
+                <span id="char-count-mensaje">0</span> / 1000
+              </p>
+            </div>
+            <button
+              type="submit"
+              id="btn-enviar-mensaje"
+              class="w-full py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition flex items-center justify-center gap-2"
+            >
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+              </svg>
+              Enviar Mensaje
+            </button>
+          </form>
+        </div>
+
+        <!-- Mensajes del Seguimiento -->
+        <div
+          id="seccion-mensajes"
+          class="hidden bg-white rounded-xl shadow-lg p-6"
+        >
+          <h3
+            class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"
+          >
+            <svg
+              class="w-5 h-5 text-indigo-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"
+              ></path>
+            </svg>
+            Mensajes
+          </h3>
+          <div id="mensajes-container" class="space-y-4">
+            <!-- Mensajes se insertan aquí -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script is:inline src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+
+
+
+
+
+
+
+
+
+<style is:global>
+  #resultado-nombre,
+  #resultado-email,
+  #resultado-telefono,
+  #resultado-documento,
+  #resultado-descripcion,
+  #resultado-detalle,
+  #resultado-pedido {
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+  }
+</style>
+
+
+
+
+
+</Layout>
+
+<script>
+  const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
+
+  let reclamoActual: any = null;
+
+  const seccionConsulta = document.getElementById("seccion-consulta");
+  const seccionResultado = document.getElementById("seccion-resultado");
+  const formConsulta = document.getElementById("form-consulta");
+  const formMensaje = document.getElementById("form-mensaje");
+  const btnNuevaConsulta = document.getElementById("btn-nueva-consulta");
+
+  // Colores por estado
+  const estadoColores: Record<string, { bg: string; badge: string }> = {
+    PENDIENTE: { bg: "bg-yellow-500", badge: "bg-yellow-100 text-yellow-800" },
+    EN_PROCESO: { bg: "bg-blue-500", badge: "bg-blue-100 text-blue-800" },
+    RESUELTO: { bg: "bg-green-500", badge: "bg-green-100 text-green-800" },
+    CERRADO: { bg: "bg-gray-500", badge: "bg-gray-100 text-gray-800" },
+  };
+
+  const tipoAccionIconos: Record<string, string> = {
+    CREACION: "📝",
+    CAMBIO_ESTADO: "🔄",
+    RESPUESTA: "✅",
+    MENSAJE_CLIENTE: "💬",
+    ADJUNTO: "📎",
+    NOTIFICACION: "🔔",
+  };
+
+  // Consultar reclamo
+  formConsulta?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const codigo = (
+      document.getElementById("codigo_reclamo") as HTMLInputElement
+    ).value
+      .trim()
+      .toUpperCase();
+    const documento = (
+      document.getElementById("numero_documento") as HTMLInputElement
+    ).value.trim();
+
+    if (!codigo || !documento) {
+      Swal.fire({
+        icon: "warning",
+        title: "Campos requeridos",
+        text: "Ingrese el código y número de documento",
+      });
+      return;
+    }
+
+    const btn = document.getElementById("btn-consultar");
+    if (btn) {
+      btn.setAttribute("disabled", "true");
+      btn.innerHTML =
+        '<svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Consultando...';
+    }
+
+    try {
+    // Forzamos la URL completa para evitar errores de rutas relativas
+const response = await fetch(
+  `http://localhost:3000/api/seguimiento/${codigo}?documento=${documento}`
+);
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || "Reclamo no encontrado");
+      }
+
+      reclamoActual = result.data;
+      mostrarResultado(result.data);
+      guardarEstadoSeguimiento();
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "No encontrado",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Verifique los datos ingresados",
+        confirmButtonColor: "#2563EB",
+      });
+    } finally {
+      if (btn) {
+        btn.removeAttribute("disabled");
+        btn.innerHTML =
+          '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>Consultar Estado';
+      }
+    }
+  });
+
+  // Mostrar resultado
+  function mostrarResultado(data: any) {
+    seccionConsulta?.classList.add("hidden");
+    seccionResultado?.classList.remove("hidden");
+
+    const estado = data.reclamo.estado || "PENDIENTE";
+    const colores = estadoColores[estado] || estadoColores["PENDIENTE"];
+
+    // Header
+    const header = document.getElementById("header-estado");
+    if (header) header.className = `p-6 text-white ${colores.bg}`;
+
+    // Datos principales
+    setText("resultado-codigo", data.reclamo.codigo_reclamo);
+    setText("resultado-tipo", data.reclamo.tipo_solicitud);
+    setText("resultado-nombre", data.reclamo.nombre_completo);
+    setText("resultado-email", data.reclamo.email);
+    setText("resultado-telefono", data.reclamo.telefono);
+    setText("resultado-documento", data.reclamo.numero_documento);
+    setText("resultado-descripcion", data.reclamo.descripcion_bien);
+    setText("resultado-detalle", data.reclamo.detalle_reclamo);
+    setText("resultado-pedido", data.reclamo.pedido_consumidor);
+
+    // Estado badge
+    const badge = document.getElementById("resultado-estado-badge");
+    if (badge) {
+      badge.textContent = estado.replace("_", " ");
+      badge.className = `inline-block px-4 py-2 rounded-full text-sm font-bold ${colores.badge}`;
+    }
+
+    // Fechas
+    setText("resultado-fecha", formatDate(data.reclamo.fecha_registro));
+    setText(
+      "resultado-limite",
+      formatDate(data.reclamo.fecha_limite_respuesta),
+    );
+
+    const dias = data.reclamo.dias_restantes;
+    const diasEl = document.getElementById("resultado-dias");
+    if (diasEl) {
+      if (estado === "RESUELTO" || estado === "CERRADO") {
+        diasEl.textContent = "Finalizado";
+        diasEl.className = "font-semibold text-green-600";
+      } else if (dias < 0) {
+        diasEl.textContent = `Vencido (${Math.abs(dias)} días)`;
+        diasEl.className = "font-semibold text-red-600";
+      } else if (dias <= 3) {
+        diasEl.textContent = `${dias} días (Urgente)`;
+        diasEl.className = "font-semibold text-orange-600";
+      } else {
+        diasEl.textContent = `${dias} días`;
+        diasEl.className = "font-semibold text-gray-900";
+      }
+    }
+
+   // Respuesta de la empresa
+    const seccionRespuesta = document.getElementById("seccion-respuesta");
+    if (data.respuesta && data.respuesta.respuesta_empresa) {
+      seccionRespuesta?.classList.remove("hidden");
+      
+      // Construir HTML completo de respuesta
+      const respuestaHTML = `
+        <p class="text-gray-800 whitespace-pre-line mb-4">${data.respuesta.respuesta_empresa}</p>
+        ${data.respuesta.accion_tomada ? `
+          <div class="bg-white rounded p-3 mb-3">
+            <p class="text-xs text-green-700 font-semibold mb-1">🔧 Acción Tomada:</p>
+            <p class="text-gray-800">${data.respuesta.accion_tomada}</p>
+          </div>
+        ` : ''}
+        ${data.respuesta.compensacion_ofrecida ? `
+          <div class="bg-white rounded p-3 mb-3">
+            <p class="text-xs text-green-700 font-semibold mb-1">🎁 Compensación Ofrecida:</p>
+            <p class="text-gray-800">${data.respuesta.compensacion_ofrecida}</p>
+          </div>
+        ` : ''}
+      `;
+      
+      const respuestaContainer = document.getElementById("resultado-respuesta");
+      if (respuestaContainer) {
+        respuestaContainer.innerHTML = respuestaHTML;
+      }
+      
+      setText(
+        "resultado-respondido-por",
+        data.respuesta.respondido_por || "CODEPLEX",
+      );
+      setText(
+        "resultado-fecha-respuesta",
+        formatDateTime(data.respuesta.fecha_respuesta),
+      );
+    } else {
+      seccionRespuesta?.classList.add("hidden");
+    }
+
+    // Timeline
+    renderTimeline(data.historial || []);
+
+    // Mensajes
+    renderMensajes(data.mensajes || []);
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Render timeline
+  function renderTimeline(historial: any[]) {
+    const container = document.getElementById("timeline-container");
+    if (!container) return;
+
+    if (historial.length === 0) {
+      container.innerHTML =
+        '<p class="text-gray-500 text-center py-4">No hay historial disponible</p>';
+      return;
+    }
+
+    container.innerHTML = historial
+      .map(
+        (item, index) => `
+      <div class="relative pl-8 pb-8 ${index === historial.length - 1 ? "" : "border-l-2 border-gray-200"}">
+        <div class="absolute left-0 top-0 -translate-x-1/2 w-8 h-8 rounded-full ${index === 0 ? "bg-blue-500" : "bg-gray-300"} flex items-center justify-center text-white text-sm">
+          ${tipoAccionIconos[item.tipo_accion] || "📌"}
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 ml-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+            <span class="font-semibold text-gray-900">${formatTipoAccion(item.tipo_accion)}</span>
+            <span class="text-xs text-gray-500">${formatDateTime(item.fecha_accion)}</span>
+          </div>
+          ${
+            item.estado_anterior && item.estado_nuevo
+              ? `
+            <p class="text-sm text-gray-600">
+              <span class="inline-block px-2 py-1 rounded text-xs bg-gray-200">${item.estado_anterior}</span>
+              →
+              <span class="inline-block px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">${item.estado_nuevo}</span>
+            </p>
+          `
+              : ""
+          }
+          ${item.comentario ? `<p class="text-sm text-gray-700 mt-2">${item.comentario}</p>` : ""}
+          <p class="text-xs text-gray-400 mt-2">Por: ${item.usuario_accion || "Sistema"}</p>
+        </div>
+      </div>
+    `,
+      )
+      .join("");
+  }
+
+  // Render mensajes
+  function renderMensajes(mensajes: any[]) {
+    const container = document.getElementById("mensajes-container");
+    const seccion = document.getElementById("seccion-mensajes");
+    if (!container || !seccion) return;
+
+    if (mensajes.length === 0) {
+      seccion.classList.add("hidden");
+      return;
+    }
+
+    seccion.classList.remove("hidden");
+    container.innerHTML = mensajes
+      .map(
+        (msg) => `
+      <div class="p-4 rounded-lg ${msg.tipo_mensaje === "CLIENTE" ? "bg-purple-50 border-l-4 border-purple-400" : "bg-blue-50 border-l-4 border-blue-400"}">
+        <div class="flex justify-between items-start mb-2">
+          <span class="font-semibold text-sm ${msg.tipo_mensaje === "CLIENTE" ? "text-purple-700" : "text-blue-700"}">
+            ${msg.tipo_mensaje === "CLIENTE" ? "👤 Usted" : "🏢 CODEPLEX"}
+          </span>
+          <span class="text-xs text-gray-500">${formatDateTime(msg.fecha_mensaje)}</span>
+        </div>
+        <p class="text-gray-800 whitespace-pre-line">${msg.mensaje}</p>
+      </div>
+    `,
+      )
+      .join("");
+  }
+
+  // Enviar mensaje adicional
+  formMensaje?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!reclamoActual) return;
+
+    const mensaje = (
+      document.getElementById("mensaje_adicional") as HTMLTextAreaElement
+    ).value.trim();
+    if (!mensaje) return;
+
+    const btn = document.getElementById("btn-enviar-mensaje");
+    if (btn) {
+      btn.setAttribute("disabled", "true");
+      btn.innerHTML =
+        '<svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Enviando...';
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/seguimiento/${reclamoActual.reclamo.codigo_reclamo}/mensaje`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mensaje,
+            numero_documento: reclamoActual.reclamo.numero_documento,
+          }),
+        },
+      );
+
+      const result = await response.json();
+
+      if (!result.success) throw new Error(result.message);
+
+      Swal.fire({
+        icon: "success",
+        title: "Mensaje enviado",
+        text: "Su mensaje ha sido registrado correctamente",
+        confirmButtonColor: "#7c3aed",
+      });
+
+      (
+        document.getElementById("mensaje_adicional") as HTMLTextAreaElement
+      ).value = "";
+      document.getElementById("char-count-mensaje")!.textContent = "0";
+
+      // Recargar datos
+      const codigo = reclamoActual.reclamo.codigo_reclamo;
+      const documento = reclamoActual.reclamo.numero_documento;
+      const refreshResponse = await fetch(
+        `${API_URL}/seguimiento/${codigo}?documento=${documento}`,
+      );
+      const refreshResult = await refreshResponse.json();
+      if (refreshResult.success) {
+        reclamoActual = refreshResult.data;
+        renderMensajes(refreshResult.data.mensajes || []);
+        renderTimeline(refreshResult.data.historial || []);
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "No se pudo enviar el mensaje",
+        confirmButtonColor: "#2563EB",
+      });
+    } finally {
+      if (btn) {
+        btn.removeAttribute("disabled");
+        btn.innerHTML =
+          '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>Enviar Mensaje';
+      }
+    }
+  });
+
+// Guardar en sessionStorage
+  function guardarEstadoSeguimiento() {
+    if (reclamoActual) {
+      sessionStorage.setItem('seguimiento_data', JSON.stringify(reclamoActual));
+    }
+  }
+
+ // Cargar desde sessionStorage SOLO SI VENIMOS DE RELOAD
+  window.addEventListener('DOMContentLoaded', () => {
+    const isReload = sessionStorage.getItem('is_reload');
+    const savedData = sessionStorage.getItem('seguimiento_data');
+    
+    if (isReload === 'true' && savedData) {
+      try {
+        reclamoActual = JSON.parse(savedData);
+        mostrarResultado(reclamoActual);
+      } catch (e) {
+        console.error('Error cargando datos guardados');
+      }
+    }
+    
+    // Limpiar flag
+    sessionStorage.removeItem('is_reload');
+  });
+
+  // Marcar como reload cuando se recarga la página
+  window.addEventListener('beforeunload', () => {
+    if (reclamoActual) {
+      sessionStorage.setItem('is_reload', 'true');
+    }
+  });
+
+  // Nueva consulta
+  btnNuevaConsulta?.addEventListener("click", () => {
+    seccionResultado?.classList.add("hidden");
+    seccionConsulta?.classList.remove("hidden");
+    reclamoActual = null;
+    sessionStorage.removeItem('seguimiento_data');
+    (document.getElementById("form-consulta") as HTMLFormElement)?.reset();
+  });
+
+  // Contador de caracteres
+  const txtMensaje = document.getElementById("mensaje_adicional");
+  txtMensaje?.addEventListener("input", () => {
+    const count = (txtMensaje as HTMLTextAreaElement).value.length;
+    document.getElementById("char-count-mensaje")!.textContent =
+      count.toString();
+  });
+
+  // Helpers
+  function setText(id: string, value: string) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || "--";
+  }
+
+  function formatDate(dateStr: string): string {
+    if (!dateStr) return "--";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("es-PE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+
+  function formatDateTime(dateStr: string): string {
+    if (!dateStr) return "--";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("es-PE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  function formatTipoAccion(tipo: string): string {
+    const nombres: Record<string, string> = {
+      CREACION: "Reclamo Registrado",
+      CAMBIO_ESTADO: "Cambio de Estado",
+      RESPUESTA: "Respuesta de Empresa",
+      MENSAJE_CLIENTE: "Mensaje del Cliente",
+      ADJUNTO: "Archivo Adjunto",
+      NOTIFICACION: "Notificación Enviada",
+    };
+    return nombres[tipo] || tipo;
+  }
+
+  // SweetAlert global
+  declare const Swal: any;
+</script>

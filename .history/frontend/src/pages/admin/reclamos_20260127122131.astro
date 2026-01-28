@@ -1,0 +1,11 @@
+---
+// src/pages/admin/reclamos.astro
+import Layout from '../../layouts/Layout.astro';
+import ReclamosList from '../../components/admin/ReclamosList';
+---
+
+<Layout title="Reclamos - Panel Administrativo">
+    <div class="min-h-screen bg-gray-50">
+        <ReclamosList client:only="react" />
+    </div>
+</Layout>

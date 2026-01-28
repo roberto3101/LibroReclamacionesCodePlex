@@ -1,0 +1,9 @@
+---
+// src/pages/admin/dashboard.astro
+import Layout from '../../layouts/Layout.astro';
+import DashboardComponent from '../../components/admin/Dashboard'; // Importa el componente arriba
+---
+
+<Layout title="Dashboard - Panel Administrativo">
+    <DashboardComponent client:only="react" />
+</Layout>

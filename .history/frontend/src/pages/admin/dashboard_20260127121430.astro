@@ -1,0 +1,20 @@
+---
+// src/pages/admin/dashboard.astro
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Dashboard - Panel Administrativo">
+	<div id="app" class="min-h-screen bg-gray-50"></div>
+
+	<script>
+		import { createRoot } from 'react-dom/client';
+		import { createElement } from 'react';
+		import Dashboard from '../../components/admin/Dashboard';
+
+		const container = document.getElementById('app');
+		if (container) {
+			const root = createRoot(container);
+			root.render(createElement(Dashboard));
+		}
+	</script>
+</Layout>

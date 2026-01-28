@@ -1,0 +1,1531 @@
+---
+import Layout from "../layouts/Layout.astro";
+import FirmaDigital from "../components/FirmaDigital.astro";
+---
+
+<Layout title="Libro de Reclamaciones">
+  <main class="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+      <div class="container mx-auto px-4 py-6">
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col border-l-4 border-blue-600 pl-4">
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">
+              LIBRO DE RECLAMACIONES
+            </h1>
+            <p class="text-sm text-gray-500 font-medium">
+              CODEPLEX SOFTWARE S.A.C. | RUC: 20539782232
+            </p>
+          </div>
+          <div class="hidden md:block">
+            <span
+              class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider"
+            >
+              Portal Virtual
+            </span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+      <!-- Información Legal -->
+      <div
+        class="bg-blue-50 border-l-4 border-codeplex-blue p-6 mb-8 rounded-r-lg"
+      >
+        <div class="flex items-start gap-4">
+          <svg
+            class="w-6 h-6 text-codeplex-blue flex-shrink-0 mt-1"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+          <div>
+            <h2 class="font-semibold text-codeplex-dark mb-2">
+              Información Importante
+            </h2>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>
+                • Conforme al Código de Protección y Defensa del Consumidor (Ley
+                N° 29571)
+              </li>
+              <li>
+                • Decreto Supremo N° 011-2011-PCM - Reglamento del Libro de
+                Reclamaciones
+              </li>
+              <li>
+                • La empresa debe responder en un plazo máximo de <strong
+                  >15 días hábiles</strong
+                >
+              </li>
+              <li>
+                • Recibirás una copia de tu reclamo en el correo electrónico
+                proporcionado
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 1: Selección de Tipo (BOTONES GRANDES) -->
+      <div id="selector-tipo" class="bg-white rounded-lg shadow-lg p-8 mb-8">
+        <div class="text-center mb-8">
+          <h2 class="text-3xl font-bold text-gray-900 mb-3">
+            ¿Qué desea presentar?
+          </h2>
+          <p class="text-gray-600">
+            Seleccione el tipo de solicitud que desea registrar
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <!-- Botón RECLAMO -->
+          <button
+            type="button"
+            id="btn-reclamo"
+            class="p-8 bg-gradient-to-br from-red-50 to-red-100 border-4 border-red-300 rounded-xl hover:from-red-100 hover:to-red-200 hover:border-red-500 transition-all duration-300 transform hover:scale-105"
+          >
+            <div class="flex flex-col items-center text-center gap-4">
+              <div
+                class="w-24 h-24 bg-red-500 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-lg"
+              >
+                R
+              </div>
+              <div>
+                <h3 class="text-2xl font-bold text-red-700 mb-2">RECLAMO</h3>
+                <p class="text-gray-700 text-sm leading-relaxed">
+                  Disconformidad relacionada con los <strong
+                    >productos o servicios</strong
+                  > adquiridos.
+                </p>
+                <p class="text-gray-600 text-xs mt-2 italic">
+                  Ejemplo: producto defectuoso, servicio no prestado, cobro
+                  indebido
+                </p>
+              </div>
+            </div>
+          </button>
+
+          <!-- Botón QUEJA -->
+          <button
+            type="button"
+            id="btn-queja"
+            class="p-8 bg-gradient-to-br from-yellow-50 to-yellow-100 border-4 border-yellow-300 rounded-xl hover:from-yellow-100 hover:to-yellow-200 hover:border-yellow-500 transition-all duration-300 transform hover:scale-105"
+          >
+            <div class="flex flex-col items-center text-center gap-4">
+              <div
+                class="w-24 h-24 bg-yellow-500 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-lg"
+              >
+                Q
+              </div>
+              <div>
+                <h3 class="text-2xl font-bold text-yellow-700 mb-2">QUEJA</h3>
+                <p class="text-gray-700 text-sm leading-relaxed">
+                  Malestar relacionado con la <strong
+                    >atención al cliente</strong
+                  > o personal de la empresa.
+                </p>
+                <p class="text-gray-600 text-xs mt-2 italic">
+                  Ejemplo: mala atención, demora excesiva, trato inadecuado
+                </p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- FORMULARIO PRINCIPAL (Oculto inicialmente) -->
+      <div id="contenedor-formulario" class="hidden">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+          <!-- Encabezado del Formulario -->
+          <div id="header-formulario" class="p-6 text-white">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-2xl font-bold mb-2">
+                  Formulario de <span id="tipo-seleccionado-texto"></span>
+                </h2>
+                <p class="text-blue-100 text-sm">
+                  El código oficial será generado al enviar su solicitud.
+                </p>
+              </div>
+              <button
+                type="button"
+                id="btn-cambiar-tipo"
+                class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition"
+              >
+                ← Cambiar tipo
+              </button>
+            </div>
+          </div>
+
+          <!-- Formulario -->
+          <form id="form-reclamo" class="p-6 md:p-8 space-y-8">
+            <input
+              type="hidden"
+              id="tipo_solicitud"
+              name="tipo_solicitud"
+              value=""
+            />
+
+            <!-- Campos del formulario (igual que antes pero sin radio buttons de tipo) -->
+
+            <!-- SECCIÓN 1: DATOS DEL CONSUMIDOR -->
+            <section>
+              <h3
+                class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-200"
+              >
+                1. Identificación del Consumidor Reclamante
+              </h3>
+
+              <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label
+                    for="nombre_completo"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Nombre Completo <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="nombre_completo"
+                    name="nombre_completo"
+                    required
+                    maxlength="150"
+                    pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+"
+                    title="Solo se permiten letras"
+                    oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ ]/g, '')"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    placeholder="Nombre completo del consumidor"
+                  />
+                  <p class="text-right text-xs text-gray-400 mt-1">
+                    <span id="char-count-nombre">0</span> / 150
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="tipo_documento"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Tipo de Documento <span class="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="tipo_documento"
+                    name="tipo_documento"
+                    required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="DNI">DNI (8 dígitos)</option>
+                    <option value="CE">Carné de Extranjería</option>
+                    <option value="RUC">RUC (11 dígitos)</option>
+                    <option value="Pasaporte">Pasaporte</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    for="numero_documento"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Número de Documento <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="numero_documento"
+                    name="numero_documento"
+                    required
+                    maxlength="12"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Seleccione tipo de documento primero"
+                    disabled
+                  />
+                  <p id="documento_hint" class="text-xs text-gray-500 mt-1"></p>
+                </div>
+
+                <div>
+                  <label
+                    for="telefono"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Teléfono / Celular <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    id="telefono"
+                    name="telefono"
+                    required
+                    maxlength="20"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="987654321"
+                  />
+                  <input
+                    type="hidden"
+                    id="telefono_completo"
+                    name="telefono_completo"
+                  />
+                </div>
+                <div class="md:col-span-2">
+                  <label
+                    for="email"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Correo Electrónico <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="correo@ejemplo.com"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    for="departamento"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Departamento <span class="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="departamento"
+                    name="departamento"
+                    required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="">Seleccione departamento...</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    for="distrito"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Provincia / Distrito <span class="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="distrito"
+                    name="distrito"
+                    required
+                    disabled
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                  >
+                    <option value="">Primero seleccione departamento...</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECCIÓN 2: CAMPOS DINÁMICOS SEGÚN TIPO -->
+            <section class="pt-6 border-t-2 border-gray-200">
+              <h3
+                class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-200"
+                id="titulo-seccion-2"
+              >
+                2. Detalle del Motivo
+              </h3>
+
+              <!-- Solo para RECLAMO -->
+              <div id="campos-reclamo" class="hidden space-y-6">
+                <div>
+                  <label
+                    for="tipo_bien"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Tipo <span class="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="tipo_bien"
+                    name="tipo_bien"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="PRODUCTO">Producto</option>
+                    <option value="SERVICIO">Servicio</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    for="monto_reclamado"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Monto Reclamado (S/)
+                  </label>
+                  <input
+                    type="number"
+                    id="monto_reclamado"
+                    name="monto_reclamado"
+                    step="0.01"
+                    min="0"
+                    max="9999999"
+                    oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10)"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    for="descripcion_bien"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Descripción del Producto o Servicio <span
+                      class="text-red-500">*</span
+                    >
+                  </label>
+                  <textarea
+                    id="descripcion_bien"
+                    name="descripcion_bien"
+                    rows="3"
+                    maxlength="500"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    placeholder="Describa el producto o servicio adquirido"
+                  ></textarea>
+                  <p class="text-right text-xs text-gray-400 mt-1">
+                    <span id="char-count-bien">0</span> / 500
+                  </p>
+                </div>
+              </div>
+
+              <!-- Solo para QUEJA -->
+              <div id="campos-queja" class="hidden space-y-6">
+                <div>
+                  <label
+                    for="area_queja"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Área o Personal Involucrado <span class="text-red-500"
+                      >*</span
+                    >
+                  </label>
+                  <input
+                    type="text"
+                    id="area_queja"
+                    name="area_queja"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    placeholder="Ej: Atención al cliente, Soporte técnico"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    for="descripcion_situacion"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Descripción de la Situación <span class="text-red-500"
+                      >*</span
+                    >
+                  </label>
+                  <textarea
+                    id="descripcion_situacion"
+                    name="descripcion_situacion"
+                    rows="3"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    placeholder="Describa la situación que motiva su queja"
+                  ></textarea>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECCIÓN 3: DETALLE COMPLETO -->
+            <section class="pt-6 border-t-2 border-gray-200">
+              <h3
+                class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-200"
+              >
+                3. Detalle Completo
+              </h3>
+
+              <div class="space-y-6">
+                <div>
+                  <label
+                    for="fecha_incidente"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Fecha del Incidente <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    id="fecha_incidente"
+                    name="fecha_incidente"
+                    required
+                    max={new Date().toISOString().split("T")[0]}
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    for="detalle_reclamo"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Detalle Completo <span class="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    id="detalle_reclamo"
+                    name="detalle_reclamo"
+                    required
+                    rows="6"
+                    maxlength="2000"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    placeholder="Describa detalladamente los hechos y circunstancias (Máximo 2000 caracteres)"
+                  ></textarea>
+                  <p class="text-right text-xs text-gray-400 mt-1">
+                    <span id="char-count-detalle">0</span> / 2000 caracteres
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="pedido_consumidor"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Pedido Concreto del Consumidor <span class="text-red-500"
+                      >*</span
+                    >
+                  </label>
+                  <textarea
+                    id="pedido_consumidor"
+                    name="pedido_consumidor"
+                    required
+                    rows="4"
+                    maxlength="1000"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    placeholder="¿Qué solicita como solución? (Máximo 1000 caracteres)"
+                  ></textarea>
+                  <p class="text-right text-xs text-gray-400 mt-1">
+                    <span id="char-count-pedido">0</span> / 1000 caracteres
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECCIÓN 4: CONFORMIDAD Y FIRMA DIGITAL -->
+            <section class="pt-6 border-t-2 border-gray-200">
+              <div class="space-y-6">
+                <label
+                  class="flex items-start gap-3 cursor-pointer p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition"
+                >
+                  <input
+                    type="checkbox"
+                    id="acepta_terminos"
+                    name="acepta_terminos"
+                    required
+                    class="mt-1 w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span class="text-sm text-gray-700">
+                    Declaro que los datos consignados son verdaderos y estoy
+                    conforme con los términos expresados en este documento.
+                    Autorizo el tratamiento de mis datos personales para la
+                    atención de esta solicitud conforme a la Ley N° 29733. <span
+                      class="text-red-500">*</span
+                    >
+                  </span>
+                </label>
+
+                <!-- Firma Digital (Solo visible cuando acepta términos) -->
+                <div id="contenedor-firma" class="hidden">
+                  <FirmaDigital />
+                </div>
+
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="acepta_copia"
+                    name="acepta_copia"
+                    class="mt-1 w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                    checked
+                  />
+                  <span class="text-sm text-gray-700">
+                    Deseo recibir una copia en mi correo electrónico
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <!-- Botones de Acción -->
+            <div class="pt-6 border-t-2 border-gray-200">
+              <div class="flex flex-col sm:flex-row gap-4 justify-end">
+                <button
+                  type="reset"
+                  class="px-8 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
+                >
+                  Limpiar Formulario
+                </button>
+                <button
+                  type="submit"
+                  id="btn-enviar"
+                  class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg flex items-center justify-center gap-2"
+                >
+                  <svg
+                    class="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                  </svg>
+                  Enviar Solicitud
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Confirmación -->
+    <div
+      id="modal-exito"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+    >
+      <div class="bg-white rounded-lg shadow-2xl max-w-md w-full p-8">
+        <div class="text-center">
+          <div
+            class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"
+          >
+            <svg
+              class="w-10 h-10 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-2">
+            ¡Solicitud Registrada!
+          </h3>
+          <p class="text-gray-600 mb-4">
+            Su solicitud ha sido registrada exitosamente con el código:
+          </p>
+          <p
+            id="modal-codigo"
+            class="text-lg font-mono font-bold text-blue-600 bg-blue-50 py-2 px-4 rounded-lg mb-6"
+          >
+            CODEPLEX-2025-00000
+          </p>
+          <p class="text-sm text-gray-600 mb-6">
+            Hemos enviado una copia a su correo. Recibirá nuestra respuesta en
+            un plazo máximo de 15 días hábiles.
+          </p>
+          <button
+            onclick="cerrarModal()"
+            class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script is:inline src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css"
+  />
+  <script
+    is:inline
+    src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"
+  ></script>
+  <style is:global>
+    .iti {
+      width: 100%;
+    }
+    .iti__flag-container {
+      z-index: 10;
+    }
+    .input-error {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
+    }
+    .input-error:focus {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3) !important;
+    }
+  </style>
+</Layout>
+
+<script>
+  // Configuración de la API
+  const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
+
+  let tipoSeleccionado: "RECLAMO" | "QUEJA" | null = null;
+  let itiInstance: any = null;
+  let ubigeoData: any = {};
+
+  // Reglas de validación por tipo de documento
+  const documentoReglas: Record<
+    string,
+    { min: number; max: number; hint: string; pattern: RegExp }
+  > = {
+    DNI: {
+      min: 8,
+      max: 8,
+      hint: "DNI debe tener exactamente 8 dígitos",
+      pattern: /^[0-9]{8}$/,
+    },
+    CE: {
+      min: 9,
+      max: 12,
+      hint: "Carné de Extranjería: 9 a 12 caracteres",
+      pattern: /^[a-zA-Z0-9]{9,12}$/,
+    },
+    RUC: {
+      min: 11,
+      max: 11,
+      hint: "RUC debe tener exactamente 11 dígitos",
+      pattern: /^[0-9]{11}$/,
+    },
+    Pasaporte: {
+      min: 6,
+      max: 12,
+      hint: "Pasaporte: 6 a 12 caracteres alfanuméricos",
+      pattern: /^[a-zA-Z0-9]{6,12}$/,
+    },
+  };
+
+  // Elementos del DOM
+  const selectorTipo = document.getElementById("selector-tipo");
+  const contenedorFormulario = document.getElementById("contenedor-formulario");
+  const btnReclamo = document.getElementById("btn-reclamo");
+  const btnQueja = document.getElementById("btn-queja");
+  const btnCambiarTipo = document.getElementById("btn-cambiar-tipo");
+  const headerFormulario = document.getElementById("header-formulario");
+  const tipoSeleccionadoTexto = document.getElementById(
+    "tipo-seleccionado-texto",
+  );
+  const inputTipoSolicitud = document.getElementById(
+    "tipo_solicitud",
+  ) as HTMLInputElement;
+  const camposReclamo = document.getElementById("campos-reclamo");
+  const camposQueja = document.getElementById("campos-queja");
+  const aceptaTerminos = document.getElementById(
+    "acepta_terminos",
+  ) as HTMLInputElement;
+  const contenedorFirma = document.getElementById("contenedor-firma");
+
+  // ==========================================
+  // INICIALIZACIÓN
+  // ==========================================
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Inicializar teléfono con banderas
+    initTelefono();
+
+    // Cargar ubigeo de Perú
+    await cargarUbigeo();
+
+    // Configurar validación de documento
+    setupDocumentoValidation();
+
+    // Configurar validación en tiempo real
+    setupRealtimeValidation();
+  });
+
+  // ==========================================
+  // TELÉFONO CON BANDERAS
+  // ==========================================
+
+  // ==========================================
+  // TELÉFONO CON BANDERAS
+  // ==========================================
+
+function initTelefono() {
+    const inputTelefono = document.getElementById(
+      "telefono",
+    ) as HTMLInputElement;
+    if (!inputTelefono || typeof window.intlTelInput === "undefined") return;
+
+    itiInstance = window.intlTelInput(inputTelefono, {
+      initialCountry: "auto",
+      geoIpLookup: function (callback: any) {
+        fetch("https://ipapi.co/json/")
+          .then((res) => res.json())
+          .then((data) => callback(data.country_code))
+          .catch(() => callback("pe")); // Si falla la API, no da error, solo pone Perú
+      },
+      preferredCountries: ["pe", "co", "ec", "cl", "ar", "mx", "us"],
+      separateDialCode: true,
+      utilsScript:
+        "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
+    });
+
+    inputTelefono.addEventListener("countrychange", updateTelefonoCompleto);
+    inputTelefono.addEventListener("input", updateTelefonoCompleto);
+  }
+
+    // Cuando cambie, actualizar el campo oculto
+    inputTelefono.addEventListener("countrychange", updateTelefonoCompleto);
+    inputTelefono.addEventListener("input", updateTelefonoCompleto);
+  }
+  function updateTelefonoCompleto() {
+    const inputTelefono = document.getElementById(
+      "telefono",
+    ) as HTMLInputElement;
+    const inputCompleto = document.getElementById(
+      "telefono_completo",
+    ) as HTMLInputElement;
+    if (itiInstance && inputCompleto) {
+      inputCompleto.value = itiInstance.getNumber();
+    }
+  }
+
+  // ==========================================
+  // UBIGEO PERÚ
+  // ==========================================
+
+  async function cargarUbigeo() {
+    // JSON embebido de departamentos y distritos de Perú
+    ubigeoData = {
+      Amazonas: [
+        "Chachapoyas",
+        "Bagua",
+        "Bongará",
+        "Condorcanqui",
+        "Luya",
+        "Rodríguez de Mendoza",
+        "Utcubamba",
+      ],
+      Áncash: [
+        "Huaraz",
+        "Aija",
+        "Antonio Raymondi",
+        "Asunción",
+        "Bolognesi",
+        "Carhuaz",
+        "Carlos Fermín Fitzcarrald",
+        "Casma",
+        "Corongo",
+        "Huari",
+        "Huarmey",
+        "Huaylas",
+        "Mariscal Luzuriaga",
+        "Ocros",
+        "Pallasca",
+        "Pomabamba",
+        "Recuay",
+        "Santa",
+        "Sihuas",
+        "Yungay",
+      ],
+      Apurímac: [
+        "Abancay",
+        "Andahuaylas",
+        "Antabamba",
+        "Aymaraes",
+        "Cotabambas",
+        "Chincheros",
+        "Grau",
+      ],
+      Arequipa: [
+        "Arequipa",
+        "Camaná",
+        "Caravelí",
+        "Castilla",
+        "Caylloma",
+        "Condesuyos",
+        "Islay",
+        "La Unión",
+      ],
+      Ayacucho: [
+        "Huamanga",
+        "Cangallo",
+        "Huanca Sancos",
+        "Huanta",
+        "La Mar",
+        "Lucanas",
+        "Parinacochas",
+        "Páucar del Sara Sara",
+        "Sucre",
+        "Víctor Fajardo",
+        "Vilcas Huamán",
+      ],
+      Cajamarca: [
+        "Cajamarca",
+        "Cajabamba",
+        "Celendín",
+        "Chota",
+        "Contumazá",
+        "Cutervo",
+        "Hualgayoc",
+        "Jaén",
+        "San Ignacio",
+        "San Marcos",
+        "San Miguel",
+        "San Pablo",
+        "Santa Cruz",
+      ],
+      Callao: [
+        "Callao",
+        "Bellavista",
+        "Carmen de la Legua Reynoso",
+        "La Perla",
+        "La Punta",
+        "Ventanilla",
+        "Mi Perú",
+      ],
+      Cusco: [
+        "Cusco",
+        "Acomayo",
+        "Anta",
+        "Calca",
+        "Canas",
+        "Canchis",
+        "Chumbivilcas",
+        "Espinar",
+        "La Convención",
+        "Paruro",
+        "Paucartambo",
+        "Quispicanchi",
+        "Urubamba",
+      ],
+      Huancavelica: [
+        "Huancavelica",
+        "Acobamba",
+        "Angaraes",
+        "Castrovirreyna",
+        "Churcampa",
+        "Huaytará",
+        "Tayacaja",
+      ],
+      Huánuco: [
+        "Huánuco",
+        "Ambo",
+        "Dos de Mayo",
+        "Huacaybamba",
+        "Huamalíes",
+        "Leoncio Prado",
+        "Marañón",
+        "Pachitea",
+        "Puerto Inca",
+        "Lauricocha",
+        "Yarowilca",
+      ],
+      Ica: ["Ica", "Chincha", "Nasca", "Palpa", "Pisco"],
+      Junín: [
+        "Huancayo",
+        "Concepción",
+        "Chanchamayo",
+        "Jauja",
+        "Junín",
+        "Satipo",
+        "Tarma",
+        "Yauli",
+        "Chupaca",
+      ],
+      "La Libertad": [
+        "Trujillo",
+        "Ascope",
+        "Bolívar",
+        "Chepén",
+        "Julcán",
+        "Otuzco",
+        "Pacasmayo",
+        "Pataz",
+        "Sánchez Carrión",
+        "Santiago de Chuco",
+        "Gran Chimú",
+        "Virú",
+      ],
+      Lambayeque: ["Chiclayo", "Ferreñafe", "Lambayeque"],
+      Lima: [
+        "Lima",
+        "Barranca",
+        "Cajatambo",
+        "Canta",
+        "Cañete",
+        "Huaral",
+        "Huarochirí",
+        "Huaura",
+        "Oyón",
+        "Yauyos",
+      ],
+      "Lima Metropolitana": [
+        "Ate",
+        "Barranco",
+        "Breña",
+        "Carabayllo",
+        "Chaclacayo",
+        "Chorrillos",
+        "Cieneguilla",
+        "Comas",
+        "El Agustino",
+        "Independencia",
+        "Jesús María",
+        "La Molina",
+        "La Victoria",
+        "Lima Cercado",
+        "Lince",
+        "Los Olivos",
+        "Lurigancho",
+        "Lurín",
+        "Magdalena del Mar",
+        "Miraflores",
+        "Pachacámac",
+        "Pucusana",
+        "Pueblo Libre",
+        "Puente Piedra",
+        "Punta Hermosa",
+        "Punta Negra",
+        "Rímac",
+        "San Bartolo",
+        "San Borja",
+        "San Isidro",
+        "San Juan de Lurigancho",
+        "San Juan de Miraflores",
+        "San Luis",
+        "San Martín de Porres",
+        "San Miguel",
+        "Santa Anita",
+        "Santa María del Mar",
+        "Santa Rosa",
+        "Santiago de Surco",
+        "Surquillo",
+        "Villa El Salvador",
+        "Villa María del Triunfo",
+      ],
+      Loreto: [
+        "Maynas",
+        "Alto Amazonas",
+        "Loreto",
+        "Mariscal Ramón Castilla",
+        "Requena",
+        "Ucayali",
+        "Datem del Marañón",
+        "Putumayo",
+      ],
+      "Madre de Dios": ["Tambopata", "Manu", "Tahuamanu"],
+      Moquegua: ["Mariscal Nieto", "General Sánchez Cerro", "Ilo"],
+      Pasco: ["Pasco", "Daniel Alcides Carrión", "Oxapampa"],
+      Piura: [
+        "Piura",
+        "Ayabaca",
+        "Huancabamba",
+        "Morropón",
+        "Paita",
+        "Sullana",
+        "Talara",
+        "Sechura",
+      ],
+      Puno: [
+        "Puno",
+        "Azángaro",
+        "Carabaya",
+        "Chucuito",
+        "El Collao",
+        "Huancané",
+        "Lampa",
+        "Melgar",
+        "Moho",
+        "San Antonio de Putina",
+        "San Román",
+        "Sandia",
+        "Yunguyo",
+      ],
+      "San Martín": [
+        "Moyobamba",
+        "Bellavista",
+        "El Dorado",
+        "Huallaga",
+        "Lamas",
+        "Mariscal Cáceres",
+        "Picota",
+        "Rioja",
+        "San Martín",
+        "Tocache",
+      ],
+      Tacna: ["Tacna", "Candarave", "Jorge Basadre", "Tarata"],
+      Tumbes: ["Tumbes", "Contralmirante Villar", "Zarumilla"],
+      Ucayali: ["Coronel Portillo", "Atalaya", "Padre Abad", "Purús"],
+    };
+
+    const selectDepartamento = document.getElementById(
+      "departamento",
+    ) as HTMLSelectElement;
+    const selectDistrito = document.getElementById(
+      "distrito",
+    ) as HTMLSelectElement;
+
+    if (!selectDepartamento || !selectDistrito) return;
+
+    // Llenar departamentos
+    Object.keys(ubigeoData)
+      .sort()
+      .forEach((dep) => {
+        const option = document.createElement("option");
+        option.value = dep;
+        option.textContent = dep;
+        selectDepartamento.appendChild(option);
+      });
+
+    // Al cambiar departamento, llenar distritos
+    selectDepartamento.addEventListener("change", () => {
+      const dep = selectDepartamento.value;
+      selectDistrito.innerHTML =
+        '<option value="">Seleccione provincia/distrito...</option>';
+
+      if (dep && ubigeoData[dep]) {
+        selectDistrito.disabled = false;
+        ubigeoData[dep].forEach((dist: string) => {
+          const option = document.createElement("option");
+          option.value = dist;
+          option.textContent = dist;
+          selectDistrito.appendChild(option);
+        });
+      } else {
+        selectDistrito.disabled = true;
+      }
+
+      removeInputError(selectDepartamento);
+    });
+  }
+
+  // ==========================================
+  // VALIDACIÓN DE DOCUMENTO
+  // ==========================================
+
+  // ==========================================
+  // VALIDACIÓN DE DOCUMENTO
+  // ==========================================
+
+  function setupDocumentoValidation() {
+    const selectTipo = document.getElementById(
+      "tipo_documento",
+    ) as HTMLSelectElement;
+    const inputNumero = document.getElementById(
+      "numero_documento",
+    ) as HTMLInputElement;
+    const hint = document.getElementById("documento_hint");
+
+    if (!selectTipo || !inputNumero) return;
+
+    selectTipo.addEventListener("change", () => {
+      const tipo = selectTipo.value;
+
+      if (tipo && documentoReglas[tipo]) {
+        const regla = documentoReglas[tipo];
+        inputNumero.disabled = false;
+        inputNumero.maxLength = regla.max;
+        inputNumero.placeholder = regla.hint;
+        if (hint) hint.textContent = regla.hint;
+
+        // CORRECCIÓN AQUÍ: Usamos inputNumero directamente en lugar de 'this'
+        if (tipo === "DNI" || tipo === "RUC") {
+          inputNumero.oninput = () => {
+            inputNumero.value = inputNumero.value.replace(/[^0-9]/g, "");
+          };
+        } else {
+          inputNumero.oninput = () => {
+            inputNumero.value = inputNumero.value.replace(/[^a-zA-Z0-9]/g, "");
+          };
+        }
+
+        inputNumero.value = "";
+        removeInputError(selectTipo);
+      } else {
+        inputNumero.disabled = true;
+        inputNumero.placeholder = "Seleccione tipo de documento primero";
+        if (hint) hint.textContent = "";
+      }
+    });
+
+    // Validar al perder foco
+    inputNumero.addEventListener("blur", () => {
+      const tipo = selectTipo.value;
+      if (tipo && documentoReglas[tipo]) {
+        const regla = documentoReglas[tipo];
+        if (!regla.pattern.test(inputNumero.value)) {
+          setInputError(inputNumero);
+        } else {
+          removeInputError(inputNumero);
+        }
+      }
+    });
+  }
+
+  // ==========================================
+  // VALIDACIÓN EN TIEMPO REAL (bordes rojos)
+  // ==========================================
+
+  function setupRealtimeValidation() {
+    const requiredFields = document.querySelectorAll("[required]");
+
+    requiredFields.forEach((field) => {
+      field.addEventListener("blur", () => {
+        validateField(field as HTMLInputElement | HTMLSelectElement);
+      });
+
+      field.addEventListener("input", () => {
+        if ((field as HTMLInputElement).value) {
+          removeInputError(field as HTMLElement);
+        }
+      });
+    });
+  }
+
+  function validateField(field: HTMLInputElement | HTMLSelectElement): boolean {
+    const value = field.value.trim();
+
+    if (!value) {
+      setInputError(field);
+      return false;
+    }
+
+    // Validación específica de email
+    if (field.type === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) {
+        setInputError(field);
+        return false;
+      }
+    }
+
+    // Validación de documento
+    if (field.id === "numero_documento") {
+      const tipoDoc = (
+        document.getElementById("tipo_documento") as HTMLSelectElement
+      )?.value;
+      if (tipoDoc && documentoReglas[tipoDoc]) {
+        if (!documentoReglas[tipoDoc].pattern.test(value)) {
+          setInputError(field);
+          return false;
+        }
+      }
+    }
+
+    removeInputError(field);
+    return true;
+  }
+
+  function setInputError(element: HTMLElement) {
+    element.classList.add("input-error");
+    element.classList.remove("focus:ring-blue-500");
+  }
+
+  function removeInputError(element: HTMLElement) {
+    element.classList.remove("input-error");
+    element.classList.add("focus:ring-blue-500");
+  }
+
+  function validateAllFields(): boolean {
+    let isValid = true;
+    const requiredFields = document.querySelectorAll(
+      "#form-reclamo [required]:not([disabled])",
+    );
+
+    requiredFields.forEach((field) => {
+      if (!validateField(field as HTMLInputElement | HTMLSelectElement)) {
+        isValid = false;
+      }
+    });
+
+    // Validar firma digital
+    const firmaInput = document.getElementById(
+      "firma_digital",
+    ) as HTMLInputElement;
+    if (firmaInput && !firmaInput.value) {
+      const canvas = document.querySelector("#contenedor-firma canvas");
+      if (canvas) setInputError(canvas as HTMLElement);
+      isValid = false;
+    }
+
+    return isValid;
+  }
+
+  // ==========================================
+  // FORMULARIO - TIPO SELECCIÓN
+  // ==========================================
+
+  function mostrarFormulario(tipo: "RECLAMO" | "QUEJA") {
+    tipoSeleccionado = tipo;
+
+    if (!inputTipoSolicitud || !tipoSeleccionadoTexto || !headerFormulario)
+      return;
+
+    inputTipoSolicitud.value = tipo;
+    tipoSeleccionadoTexto.textContent = tipo;
+
+    if (tipo === "RECLAMO") {
+      headerFormulario.className =
+        "p-6 text-white bg-gradient-to-r from-red-600 to-red-700";
+      camposReclamo?.classList.remove("hidden");
+      camposQueja?.classList.add("hidden");
+
+      document.getElementById("tipo_bien")?.setAttribute("required", "true");
+      document
+        .getElementById("descripcion_bien")
+        ?.setAttribute("required", "true");
+      document.getElementById("area_queja")?.removeAttribute("required");
+      document
+        .getElementById("descripcion_situacion")
+        ?.removeAttribute("required");
+    } else {
+      headerFormulario.className =
+        "p-6 text-white bg-gradient-to-r from-yellow-600 to-yellow-700";
+      camposQueja?.classList.remove("hidden");
+      camposReclamo?.classList.add("hidden");
+
+      document.getElementById("area_queja")?.setAttribute("required", "true");
+      document
+        .getElementById("descripcion_situacion")
+        ?.setAttribute("required", "true");
+      document.getElementById("tipo_bien")?.removeAttribute("required");
+      document.getElementById("descripcion_bien")?.removeAttribute("required");
+    }
+
+    selectorTipo?.classList.add("hidden");
+    contenedorFormulario?.classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function volverAlSelector() {
+    selectorTipo?.classList.remove("hidden");
+    contenedorFormulario?.classList.add("hidden");
+    tipoSeleccionado = null;
+    const form = document.getElementById("form-reclamo") as HTMLFormElement;
+    form?.reset();
+
+    // Reset distrito
+    const selectDistrito = document.getElementById(
+      "distrito",
+    ) as HTMLSelectElement;
+    if (selectDistrito) {
+      selectDistrito.innerHTML =
+        '<option value="">Primero seleccione departamento...</option>';
+      selectDistrito.disabled = true;
+    }
+
+    // Reset documento
+    const inputNumero = document.getElementById(
+      "numero_documento",
+    ) as HTMLInputElement;
+    if (inputNumero) {
+      inputNumero.disabled = true;
+      inputNumero.placeholder = "Seleccione tipo de documento primero";
+    }
+
+    // Limpiar errores
+    document
+      .querySelectorAll(".input-error")
+      .forEach((el) => el.classList.remove("input-error"));
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  btnReclamo?.addEventListener("click", () => mostrarFormulario("RECLAMO"));
+  btnQueja?.addEventListener("click", () => mostrarFormulario("QUEJA"));
+  btnCambiarTipo?.addEventListener("click", volverAlSelector);
+
+  aceptaTerminos?.addEventListener("change", (e) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    if (checked) {
+      contenedorFirma?.classList.remove("hidden");
+    } else {
+      contenedorFirma?.classList.add("hidden");
+    }
+  });
+
+  // ==========================================
+  // ENVÍO DEL FORMULARIO
+  // ==========================================
+
+  const form = document.getElementById("form-reclamo");
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      // Validar todos los campos primero
+      if (!validateAllFields()) {
+        const swal = (window as any).Swal;
+        if (swal) {
+          swal.fire({
+            icon: "warning",
+            title: "Campos incompletos",
+            text: "Por favor complete todos los campos requeridos correctamente.",
+            confirmButtonColor: "#2563EB",
+          });
+        }
+        // Scroll al primer error
+        const firstError = document.querySelector(".input-error");
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+
+      const btnEnviar = document.getElementById("btn-enviar");
+      const originalText = btnEnviar?.innerHTML;
+
+      if (btnEnviar) {
+        btnEnviar.setAttribute("disabled", "true");
+        btnEnviar.innerHTML = `
+          <svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Enviando...
+        `;
+      }
+
+      try {
+        const swal = (window as any).Swal;
+
+        const Toast = swal
+          ? swal.mixin({
+              toast: true,
+              position: "top-end",
+              showConfirmButton: false,
+              timer: 3000,
+              timerProgressBar: true,
+            })
+          : null;
+
+        if (Toast) Toast.fire({ icon: "info", title: "Enviando solicitud..." });
+
+       const formData = new FormData(form as HTMLFormElement);
+        const datos: any = {};
+
+        formData.forEach((value, key) => {
+          datos[key] = value;
+        });
+
+        // --- CORRECCIÓN DE TIPOS PARA GO (IMPORTANTE) ---
+
+        // 1. Convertir Monto a Número y validar límite para evitar desbordamiento en Go
+        let monto = parseFloat(datos.monto_reclamado);
+        if (isNaN(monto) || monto < 0) {
+            datos.monto_reclamado = 0;
+        } else if (monto > 9999999.99) {
+            datos.monto_reclamado = 9999999.99;
+        } else {
+            datos.monto_reclamado = monto;
+        }
+
+        // 2. Convertir Checkboxes a Booleanos (true/false)
+        datos.acepta_terminos = !!datos.acepta_terminos;
+        datos.acepta_copia = !!datos.acepta_copia;
+
+        // ------------------------------------------------
+
+        // Usar teléfono completo con código de país
+        if (itiInstance) {
+          datos.telefono = itiInstance.getNumber();
+        }
+
+        // Ajustar campos según tipo
+        if (tipoSeleccionado === "QUEJA") {
+          datos.tipo_bien = "SERVICIO";
+          datos.descripcion_bien =
+            datos.descripcion_situacion ||
+            datos.area_queja ||
+            "Atención al cliente";
+        }
+
+        const response = await fetch(`${API_URL}/reclamos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(datos),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          if (Toast)
+            Toast.fire({
+              icon: "success",
+              title: "¡Registrado correctamente!",
+            });
+
+          const modal = document.getElementById("modal-exito");
+          const modalCodigo = document.getElementById("modal-codigo");
+
+          if (modal && modalCodigo) {
+            modalCodigo.textContent = result.data.codigo_reclamo;
+            modal.classList.remove("hidden");
+          }
+
+          (form as HTMLFormElement).reset();
+          volverAlSelector();
+        } else {
+          throw new Error(result.message || "Error al enviar");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        if ((window as any).Swal) {
+          (window as any).Swal.fire({
+            icon: "error",
+            title: "Error al enviar",
+            text:
+              error instanceof Error ? error.message : "Verifique su conexión.",
+            confirmButtonColor: "#2563EB",
+          });
+        } else {
+          alert(
+            `Error: ${error instanceof Error ? error.message : "Error desconocido"}`,
+          );
+        }
+      } finally {
+        if (btnEnviar && originalText) {
+          btnEnviar.removeAttribute("disabled");
+          btnEnviar.innerHTML = originalText;
+        }
+      }
+    });
+  }
+
+  (window as any).cerrarModal = function () {
+    const modal = document.getElementById("modal-exito");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  // ==========================================
+  // CONTADORES DE CARACTERES
+  // ==========================================
+
+  const setupCounter = (textareaId: string, counterId: string) => {
+    const area = document.getElementById(textareaId) as HTMLTextAreaElement;
+    const counter = document.getElementById(counterId);
+    if (area && counter) {
+      area.addEventListener("input", () => {
+        counter.textContent = area.value.length.toString();
+        if (area.value.length >= parseInt(area.maxLength.toString()) - 50) {
+          counter.className = "text-red-500 font-bold";
+        } else {
+          counter.className = "";
+        }
+      });
+    }
+  };
+
+  setupCounter("detalle_reclamo", "char-count-detalle");
+  setupCounter("pedido_consumidor", "char-count-pedido");
+  setupCounter("descripcion_bien", "char-count-bien");
+  setupCounter("nombre_completo", "char-count-nombre");
+
+  // Type declaration for intlTelInput
+  declare global {
+    interface Window {
+      intlTelInput: any;
+    }
+  }
+</script>

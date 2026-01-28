@@ -1,0 +1,20 @@
+---
+// src/pages/admin/reclamos/[id].astro
+import Layout from '../../../layouts/Layout.astro';
+import ReclamoDetail from '../../../components/admin/ReclamoDetail';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+
+// (Opcional pero recomendado para producción) Validación rápida:
+if (!id) {
+    return Astro.redirect('/admin/reclamos');
+}
+---
+
+<Layout title="Detalle de Reclamo - Panel Administrativo">
+    <div class="min-h-screen bg-gray-50">
+        <ReclamoDetail id={id ?? ''} client:only="react" />
+    </div>
+</Layout>

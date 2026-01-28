@@ -1,0 +1,8 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import UsersManager from '../../components/admin/UsersManager';
+---
+
+<Layout title="Gestión de Usuarios - Admin">
+    <UsersManager client:only="react" />
+</Layout>

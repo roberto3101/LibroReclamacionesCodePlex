@@ -1,0 +1,16 @@
+---
+// src/pages/admin/reclamos/[id].astro
+import Layout from '../../../layouts/Layout.astro';
+import ReclamoDetail from '../../../components/admin/ReclamoDetail';
+
+export const prerender = false;
+
+// Obtenemos el ID directamente de la URL dinámica
+const { id } = Astro.params;
+---
+
+<Layout title="Detalle de Reclamo - Panel Administrativo">
+    <div class="min-h-screen bg-gray-50">
+        <ReclamoDetail id={id} client:only="react" />
+    </div>
+</Layout>
