@@ -1,19 +1,17 @@
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
-// 1. Importamos el adaptador
-import node from '@astrojs/node';
+// CAMBIO 1: Importamos vercel en lugar de node
+import vercel from '@astrojs/vercel/serverless';
 
 export default defineConfig({
   integrations: [tailwind(), react()],
   
-  // 2. Cambiamos a modo servidor (SSR) para soportar IDs dinámicos
+  // Mantenemos output server
   output: 'server',
   
-  // 3. Configuramos el adaptador de Node
-  adapter: node({
-    mode: 'standalone',
-  }),
+  // CAMBIO 2: Usamos el adaptador de Vercel
+  adapter: vercel(),
 
   site: 'https://codeplex.pe'
 });
