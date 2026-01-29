@@ -2,8 +2,7 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from './AdminLayout';
 
-const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-
+const API_URL = (import.meta.env.PUBLIC_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 interface Reclamo {
 	id: string;
 	codigo_reclamo: string;

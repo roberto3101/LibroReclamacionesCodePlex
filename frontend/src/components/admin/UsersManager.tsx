@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-
+const API_URL = (import.meta.env.PUBLIC_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 interface User {
   id: string;
   email: string;
